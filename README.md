@@ -15,7 +15,7 @@ A sophisticated RAG (Retrieval-Augmented Generation) web application built with 
 ### **Conversational AI**
 - **Context-Aware Conversations**: Understands follow-up questions and maintains conversation context
 - **Natural Dialogue Flow**: Handles pronouns ("he", "she", "it") and contextual references
-- **Smart Question Enhancement**: Automatically enhances questions with relevant conversation context
+- **Chat Relevance**: Automatically enhances questions with relevant conversation context
 - **Memory Management**: Maintains optimal chat history (last 10 exchanges) for performance
 
 ### **Modern Interface**
