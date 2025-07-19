@@ -1,0 +1,31 @@
+# Web Framework
+flask>=2.0.0
+
+# LangChain Core Components
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+langchain-text-splitters>=0.1.0
+
+# Document Processing
+pypdf>=3.0.0
+beautifulsoup4>=4.12.0
+
+# Vector Database & Embeddings
+faiss-cpu>=1.7.4
+sentence-transformers>=2.2.0
+
+# HTTP & Web Scraping
+requests>=2.30.0
+
+# Environment & Configuration
+python-dotenv>=0.19.0
+
+# Core Libraries
+numpy>=1.21.0
+
+# LLM Integration
+groq>=0.4.0
+
+# Production (Optional)
+gunicorn>=20.1.0

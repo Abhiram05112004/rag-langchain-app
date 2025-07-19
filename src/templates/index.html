@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG LangChain Chat</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --dark-bg: #111111;
+            --sidebar-bg: #1a1a1a;
+            --chat-bg: #111111;
+            --input-bg: #222222;
+            --input-bg-focused: #2a2a2a;
+            --user-bubble: #2563eb;
+            --bot-bubble: #222222;
+            --border-color: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #3b82f6;
+            --danger: #ef4444;
+            --card-radius: 12px;
+            --btn-radius: 8px;
+            --bubble-radius: 18px;
+            --input-radius: 12px;
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text-primary); 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 0;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .chat-container { 
+            display: flex; 
+            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 340px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            min-width: 0; /* Allow content to shrink */
+        }
+        
+        .sidebar h4 { 
+            font-size: 1.1rem; 
+            margin-bottom: 16px; 
+            font-weight: 600; 
+            color: var(--text-primary); 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 8px;
+        }
+        
+        .sidebar .source-list { 
+            max-height: calc(100vh - 180px);
+            overflow-y: auto;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
+            scrollbar-width: thin;
+            scrollbar-color: #444 var(--input-bg);
+            padding-bottom: 12px;
+            border-radius: 8px;
+            width: 100%; /* Ensure full width usage */
+        }
+        
+        .sidebar .source-item { 
+            font-size: 0.95rem; 
+            margin-bottom: 12px;
+            display: flex; 
+            align-items: flex-start; /* Align items to top for better layout */
+            background: var(--input-bg);
+            border-radius: var(--card-radius);
+            padding: 14px; 
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            position: relative;
+            min-height: 64px; /* Slightly increased minimum height */
+            gap: 4px; /* Reduced gap for closer spacing */
+            overflow: hidden; /* Prevent content overflow */
+            word-wrap: break-word; /* Break long words */
+            min-width: 0; /* Allow item to shrink */
+        }
+        
+        .sidebar .source-item:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+        }
+        
+        .sidebar .source-content {
+            flex: 1;
+            overflow: hidden;
+            padding-right: 8px; /* Reduced padding for closer spacing */
+            min-width: 0; /* Allow flex item to shrink below content size */
+            word-wrap: break-word; /* Break long words */
+            max-width: calc(100% - 50px); /* Reserve space for delete button */
+        }
+        
+        .sidebar .source-item .source-title { 
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* Limit to 3 lines */
+            line-clamp: 3; /* Standard property for compatibility */
+            -webkit-box-orient: vertical;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+            width: 100%;
+            max-height: calc(1.3em * 3); /* 3 lines max height */
+            max-width: 100%; /* Ensure it doesn't exceed container */
+        }
+        
+        .sidebar .source-item .source-url { 
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            line-height: 1.2;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            width: 100%;
+            max-width: 100%; /* Ensure it doesn't exceed container */
+            opacity: 0.8;
+            word-break: break-all; /* Break long URLs if needed */
+        }
+        
+        .sidebar .source-item .source-icon {
+            color: var(--accent);
+            margin-right: 6px;
+            font-size: 0.85rem;
+        }
+        
+        .sidebar .source-remove {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0; /* Prevent button from shrinking */
+            margin-left: 6px; /* Reduced margin for closer spacing */
+        }
+        
+        .sidebar .source-item .btn { 
+            padding: 6px 8px; 
+            font-size: 0.8rem;
+            border-radius: var(--btn-radius);
+            transition: all 0.2s ease;
+            min-width: 36px; /* Slightly larger minimum width */
+            height: 36px; /* Slightly larger height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0; /* Prevent button from shrinking */
+        }
+        
+        .sidebar .source-item .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+        }
+        
+        /* Tooltip styling for source items */
+        .sidebar .source-item {
+            position: relative;
+        }
+        
+        .sidebar .source-item:hover .source-title:after {
+            content: attr(title);
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+            top: -40px;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar .source-item:hover .source-title:hover:after {
+            opacity: 1;
+        }
+        
+        /* Animation for new source items */
+        @keyframes sourceItemSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .sidebar .source-item {
+            animation: sourceItemSlideIn 0.3s ease-out;
+        }
+        
+        .main-chat { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            background: var(--chat-bg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .clear-chat-btn {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: var(--btn-radius);
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .clear-chat-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+        
+        .clear-chat-btn:active {
+            transform: translateY(0);
+        }
+          .chat-box {
+            flex: 1;
+            padding: 60px 24px 0 24px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #444 var(--chat-bg);
+            height: calc(100vh - 70px);
+            margin-bottom: 81px;
+        }
+          .chat-message {
+            margin-bottom: 12px;
+            animation: fadeInMessage 0.3s ease-out forwards;
+        }
+        
+        @keyframes fadeInMessage {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+          .chat-user {
+            background: var(--user-bubble);
+            color: white;
+            border-radius: var(--bubble-radius) var(--bubble-radius) 4px var(--bubble-radius);
+            padding: 14px 18px;
+            margin-bottom: 4px;
+            max-width: 80%;
+            width: fit-content; /* Make bubble width fit the content */
+            min-width: 60px; /* Ensure a minimum width */
+            margin-left: auto;
+            text-align: right; /* Change text alignment to right */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+            line-height: 1.5;
+        }
+        
+        .chat-user i {
+            margin-right: 6px;
+            opacity: 0.8;
+        }
+        
+        .chat-bot {
+            background: var(--bot-bubble);
+            color: var(--text-primary);
+            border-radius: var(--bubble-radius) var(--bubble-radius) var(--bubble-radius) 4px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            max-width: 80%;
+            margin-right: auto;
+            text-align: left;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+            border: 1px solid var(--border-color);
+            line-height: 1.5;
+        }
+        
+        .chat-bot i {
+            margin-right: 8px;
+            opacity: 0.8;
+            color: var(--accent);
+        }
+        
+        .chat-error { 
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--card-radius); 
+            padding: 16px; 
+            margin-bottom: 20px; 
+            color: #fee2e2; 
+            font-size: 0.95rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .chat-error i {
+            margin-right: 8px;
+            color: var(--danger);
+        }
+        
+        .query-bar {
+            position: fixed;
+            left: 340px;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0;
+            z-index: 100;
+            width: auto;
+            height: 70px;
+        }
+        
+        .query-bar-inner {
+            width: 90%;
+            max-width: 900px;
+            display: flex;
+            gap: 12px;
+            padding: 0;
+            align-items: center;
+        }
+          .query-bar input[type=text] {
+            flex: 1;
+            border-radius: var(--input-radius);
+            border: 1px solid var(--border-color);
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            min-height: 48px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .query-bar input[type=text]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+            transform: scale(1.01); /* Subtle scale effect on focus */
+            background: var(--input-bg-focused, var(--input-bg));
+        }
+        
+        .query-bar input[type=text]::placeholder {
+            color: var(--text-secondary);
+        }
+          .query-bar button { 
+            border-radius: var(--btn-radius);
+            font-size: 0.95rem;
+            min-height: 48px;
+            padding: 0 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--primary);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .query-bar button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        
+        .query-bar button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+        }
+        
+        .query-bar button i {
+            transition: transform 0.2s ease;
+        }
+        
+        .query-bar button:hover i {
+            transform: translateX(3px);
+        }
+        
+        .sidebar form .form-control { 
+            margin-bottom: 10px; 
+            background: var(--input-bg); 
+            color: var(--text-primary); 
+            border: 1px solid var(--border-color);
+            border-radius: var(--input-radius);
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar form .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+        }
+        
+        .sidebar form .form-control::placeholder { 
+            color: var(--text-secondary);
+        }
+        
+        /* Custom file input styling */
+        .sidebar form input[type="file"] {
+            position: relative;
+            padding: 10px;
+            background: #2a2a2a;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--input-radius);
+        }
+        
+        .sidebar form input[type="file"]::file-selector-button {
+            border: none;
+            margin-right: 12px;
+            background: #444;
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .sidebar form input[type="file"]::file-selector-button:hover {
+            background: #939292;
+        }
+        
+        .file-input-container {
+            margin-top: 10px;
+            position: relative;
+            width: 100%;
+        }
+        
+        .file-input-container input[type="file"] {
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        .sidebar form .btn-outline-primary { 
+            font-weight: 500;
+            border-radius: var(--btn-radius);
+            padding: 8px 0;
+            transition: all 0.2s ease;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .sidebar form .btn-outline-primary:hover {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            border-radius: var(--btn-radius);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            border: none;
+        }
+        
+        .text-muted {
+            padding: 12px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .typing-indicator {
+            background: var(--bot-bubble);
+            border-radius: var(--bubble-radius);
+            padding: 12px 16px;
+            display: inline-block;
+            margin-bottom: 12px;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-width: 60px;
+            animation: fadeInMessage 0.3s ease-out forwards;
+        }
+        
+        .typing-indicator span {
+            height: 8px;
+            width: 8px;
+            background: var(--text-primary);
+            display: inline-block;
+            border-radius: 50%;
+            opacity: 0.6;
+            margin: 0 1px;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(1) {
+            animation-delay: 0s;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-4px);
+            }
+        }
+        
+        /* Response content styling */
+        .response-content {
+            display: inline;
+            line-height: 1.6;
+            white-space: pre-wrap; /* Preserve line breaks and spacing */
+        }
+        
+        .response-content strong {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .response-content em {
+            font-style: italic;
+            color: var(--text-secondary);
+        }
+        
+        .response-content hr {
+            margin: 8px 0 !important;
+            border: none;
+            border-top: 1px solid var(--border-color);
+            opacity: 0.6;
+        }
+        
+        @media (max-width: 900px) {
+            .chat-container { 
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .sidebar { 
+                width: 100%; 
+                border-right: none; 
+                border-bottom: 1px solid var(--border-color);
+                height: auto;
+                max-height: 40vh;
+            }
+            
+            .sidebar .source-list {
+                max-height: 25vh;
+                overflow-x: hidden; /* Prevent horizontal scrolling on mobile */
+            }
+            
+            .sidebar .source-item {
+                padding: 12px;
+                margin-bottom: 8px;
+                gap: 3px; /* Further reduced gap for mobile */
+                overflow: hidden; /* Prevent overflow on mobile */
+                min-width: 0; /* Allow shrinking */
+            }
+            
+            .sidebar .source-content {
+                padding-right: 6px; /* Reduced padding for mobile */
+                max-width: calc(100% - 40px); /* Reserve space for smaller button on mobile */
+            }
+            
+            .sidebar .source-item .source-title {
+                font-size: 0.85rem;
+                max-height: calc(1.25em * 3); /* Adjust for smaller font size */
+                line-height: 1.25;
+            }
+            
+            .sidebar .source-item .source-url {
+                font-size: 0.75rem;
+            }
+            
+            .sidebar .source-item .btn {
+                padding: 4px 6px;
+                min-width: 30px;
+                height: 30px;
+                font-size: 0.75rem;
+            }
+            
+            .sidebar .source-remove {
+                margin-left: 4px; /* Further reduced margin for mobile */
+            }
+            
+            .main-chat { 
+                padding: 0; 
+                height: 60vh;
+            }
+            
+            .clear-chat-btn {
+                top: 12px;
+                right: 16px;
+                padding: 6px 10px;
+                font-size: 0.8rem;
+            }
+            
+            .chat-box {
+                height: calc(60vh - 70px);
+                padding: 50px 16px 0 16px;
+            }
+            
+            .query-bar {
+                left: 0;
+                width: 100%;
+            }
+            
+            .query-bar-inner { 
+                width: 92%; 
+            }
+            
+            .chat-user, .chat-bot {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="chat-container">    <div class="sidebar">
+        <h4><i class="fa-solid fa-database"></i>RAG Sources</h4>        <form method="post" enctype="multipart/form-data">
+            <input type="text" class="form-control" name="url" placeholder="Add Web URL">
+            <div class="file-input-container mb-2">
+                <input type="file" name="pdf" accept="application/pdf" title="Choose a PDF file">
+            </div>
+            <button type="submit" class="btn btn-outline-primary w-100 mt-2"><i class="fa fa-plus"></i> Add Source</button>
+        </form>
+        <div class="source-list">
+            {% if sources %}
+                {% for src in sources %}
+                    <div class="source-item">
+                        <div class="source-content">
+                            <div class="source-title" title="{{ src.name }}">
+                                <i class="fa fa-file-alt source-icon"></i>{{ src.name }}
+                            </div>
+                            <div class="source-url" title="{{ src.short }}">
+                                <i class="fa fa-link source-icon"></i>{{ src.short }}
+                            </div>
+                        </div>
+                        <div class="source-remove">
+                            <input type="hidden" name="name" value="{{ src.name }}">
+                            <input type="hidden" name="short" value="{{ src.short }}">
+                            <button type="button" class="btn btn-sm btn-danger remove-source-btn" title="Remove Source">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-muted">No sources yet.</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="main-chat">
+        <!-- Clear Chat Button -->
+        <button type="button" id="clear-chat-btn" class="clear-chat-btn" title="Clear all chat history">
+            <i class="fa fa-trash"></i> Clear Chat
+        </button>
+        
+        <!-- Flash messages -->
+        {% if messages %}
+            {% for category, message in messages %}
+                {% if category == 'success' %}
+                    <div style="margin: 10px 24px; padding: 12px; border-radius: 8px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); color: #22c55e;">
+                        <i class="fa fa-check-circle"></i> {{ message }}
+                    </div>
+                {% elif category == 'warning' %}
+                    <div style="margin: 10px 24px; padding: 12px; border-radius: 8px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b;">
+                        <i class="fa fa-exclamation-triangle"></i> {{ message }}
+                    </div>
+                {% else %}
+                    <div style="margin: 10px 24px; padding: 12px; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444;">
+                        <i class="fa fa-exclamation-circle"></i> {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        
+        <div class="chat-box">
+            {% for chat in chat_history %}
+                <div class="chat-message">
+                    <div class="chat-user">
+                        <i class="fa fa-user"></i>{{ chat.question }}
+                    </div>
+                </div>
+                <div class="chat-message">
+                    <div class="chat-bot">
+                        <i class="fa fa-robot"></i><div class="response-content" id="msg-{{ loop.index }}">{{ chat.answer }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+            {% if error %}
+                <div class="chat-error"><i class="fa fa-exclamation-circle"></i>{{ error }}</div>
+            {% endif %}
+        </div>
+        <form method="post" class="query-bar" enctype="multipart/form-data">
+            <div class="query-bar-inner">
+                <input type="text" name="question" placeholder="Type your question..." autocomplete="off">
+                <button type="submit" class="btn btn-primary">Ask <i class="fa fa-paper-plane"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const queryForm = document.querySelector('.query-bar');
+        const chatBox = document.querySelector('.chat-box');
+        const questionInput = queryForm.querySelector('input[name="question"]');
+
+        // Scroll to the bottom of chat when page loads
+        scrollToBottom();
+
+        function scrollToBottom() {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // Submit questions via AJAX instead of form submission
+        function submitQuestionViaAjax(question) {
+            // Create user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'chat-message';
+            userMessage.innerHTML = `
+                <div class="chat-user">
+                    <i class="fa fa-user"></i>${question}
+                </div>
+            `;
+            chatBox.appendChild(userMessage);
+
+            // Create typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'chat-message typing-indicator-container';
+            typingIndicator.innerHTML = `
+                <div class="typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            `;
+            chatBox.appendChild(typingIndicator);
+
+            scrollToBottom();
+
+            fetch('/api/question', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ question })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.querySelector('.typing-indicator-container').remove();
+                if (data.success) {
+                    const botMessage = document.createElement('div');
+                    botMessage.className = 'chat-message';
+                    botMessage.innerHTML = `
+                        <div class="chat-bot">
+                            <i class="fa fa-robot"></i><div class="response-content">${formatText(data.answer)}</div>
+                        </div>
+                    `;
+                    chatBox.appendChild(botMessage);
+                } else {
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'chat-error';
+                    errorMessage.innerHTML = `<i class="fa fa-exclamation-circle"></i>${data.message || 'An error occurred processing your question'}`;
+                    chatBox.appendChild(errorMessage);
+                }
+                scrollToBottom();
+            })
+            .catch(error => {
+                document.querySelector('.typing-indicator-container').remove();
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'chat-error';
+                errorMessage.innerHTML = `<i class="fa fa-exclamation-circle"></i>Network error. Please try again.`;
+                chatBox.appendChild(errorMessage);
+                scrollToBottom();
+                console.error('Error:', error);
+            });
+        }
+
+        // Handle form submission
+        queryForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const question = questionInput.value.trim();
+            if (question) {
+                questionInput.value = '';
+                submitQuestionViaAjax(question);
+            }
+        });
+
+        // Handle Enter key press
+        questionInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const question = questionInput.value.trim();
+                if (question) {
+                    questionInput.value = '';
+                    submitQuestionViaAjax(question);
+                }
+            }
+        });
+
+        // Handle source removal via AJAX (unchanged)
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-source-btn') || e.target.closest('.remove-source-btn')) {
+                const sourceItem = e.target.closest('.source-item');
+                const sourceRemoveDiv = e.target.closest('.source-remove');
+                const sourceName = sourceRemoveDiv.querySelector('input[name="name"]').value;
+                const sourceShort = sourceRemoveDiv.querySelector('input[name="short"]').value;
+                const formData = new FormData();
+                formData.append('name', sourceName);
+                formData.append('short', sourceShort);
+                e.target.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+                e.target.disabled = true;
+                fetch('/remove_source', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        sourceItem.style.opacity = '0';
+                        sourceItem.style.height = sourceItem.offsetHeight + 'px';
+                        setTimeout(() => {
+                            sourceItem.style.height = '0';
+                            sourceItem.style.padding = '0';
+                            sourceItem.style.margin = '0';
+                            sourceItem.style.overflow = 'hidden';
+                        }, 300);
+                        setTimeout(() => {
+                            sourceItem.remove();
+                            const sourceList = document.querySelector('.source-list');
+                            if (sourceList.querySelectorAll('.source-item').length === 0) {
+                                sourceList.innerHTML = '<div class="text-muted">No sources yet.</div>';
+                            }
+                        }, 600);
+                    } else {
+                        e.target.innerHTML = '<i class="fa fa-trash"></i>';
+                        e.target.disabled = false;
+                        alert('Failed to remove source. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    e.target.innerHTML = '<i class="fa fa-trash"></i>';
+                    e.target.disabled = false;
+                    alert('An error occurred. Please try again.');
+                });
+            }
+        });
+
+        // Clear chat button AJAX
+        const clearChatBtn = document.getElementById('clear-chat-btn');
+        if (clearChatBtn) {
+            clearChatBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear all chat history?')) {
+                    fetch('/clear_chat', {
+                        method: 'POST',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.reload();
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Function to format text with basic markdown-like formatting
+        function formatText(text) {
+            if (!text) return text;
+            
+            // Convert *text* to <strong>text</strong> (fallback for any remaining asterisks)
+            text = text.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+            
+            // Handle the new format where --- is directly followed by <em>Based on:
+            text = text.replace(/---<em>Based on:/g, '<hr style="margin: 3px 0;"><em>Based on:');
+            
+            // Convert standalone --- to horizontal rule with 3px spacing
+            text = text.replace(/^---$/gm, '<hr style="margin: 3px 0;">');
+            
+            // Clean up any remaining spacing issues
+            text = text.replace(/\n\n+/g, '\n\n');
+            
+            // Convert line breaks to <br>
+            text = text.replace(/\n/g, '<br>');
+            
+            return text;
+        }
+        
+        // Format existing chat history on page load
+        function formatExistingChatHistory() {
+            const responseElements = document.querySelectorAll('.response-content');
+            responseElements.forEach(element => {
+                // Only format if it hasn't been formatted yet (check for HTML tags)
+                if (!element.innerHTML.includes('<strong>') && !element.innerHTML.includes('<hr')) {
+                    element.innerHTML = formatText(element.textContent);
+                }
+            });
+        }
+        
+        // Call formatting after DOM is loaded
+        formatExistingChatHistory();
+
+    });
+</script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
